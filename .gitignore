@@ -1,0 +1,12 @@
+.*
+*.o
+*.a
+
+CMakeCache.txt
+CMakeFiles
+Makefile
+cmake_install.cmake
+
+ufl_predict_char
+liblinear-1.94/predict
+liblinear-1.94/train
