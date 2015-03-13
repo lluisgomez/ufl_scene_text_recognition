@@ -1,0 +1,24 @@
+../liblinear-1.94/predict data/test_data.svm.scaled2 all_train_data.liblinear.model_s2 tmp
+
+
+s2 - C 4 - e 0.1
+   Cross Validation Accuracy = 68.712%
+   Test Accuracy = 68.8534% (3579/5198) 
+   Test time 1.39 sec.
+
+s2 - C 4 - e 0.001
+   Cross Validation Accuracy = 76.9203%
+   Test Accuracy = 77.1835% (4012/5198)
+
+
+s1 - C 4 - e 0.1
+
+   Test Accuracy = 74.8557% (3891/5198)
+   Test time 1.40 sec.
+
+s1 - C 4 - e 0.001
+
+   Test Accuracy = 74.8557% (3891/5198)
+
+
+
