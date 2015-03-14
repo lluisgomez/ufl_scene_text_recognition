@@ -33,7 +33,7 @@ svm-scale -r data/all_train_data.svm.range data/test_data.svm > data/test_data.s
 4. Train the model :
 
 ```
- ../liblinear-1.94/train -s 2 -c 4 -e 0.001 data/all_train_data.svm.scaled all_train_data.svm.liblinear.model_s2_tmp
+ ../liblinear-1.94/train -s 2 -c 4 -e 0.001 data/all_train_data.svm.scaled all_train_data.liblinear.model_s2
 ```
 
 5. Evaluate the test accuracy:
