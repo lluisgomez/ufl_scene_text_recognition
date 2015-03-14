@@ -21,7 +21,7 @@ You may need to extract the dataset from **scene_chars_dataset.zip** and **backg
 ./extract_features first_layer_centroids.xml data/characters/chars74k/img_labels.txt >> data/all_train_data.svm
 ./extract_features first_layer_centroids.xml data/characters/synthetic/img_labels.txt >> data/all_train_data.svm
 
-./extract_features first_layer_centroids.xml data/characters/icdar/img_ICDAR_test_labels.txt >> data/test_data.svm
+./extract_features first_layer_centroids.xml data/characters/icdar/img_ICDAR_test_labels.txt > data/test_data.svm
 ```
 
 3. Scale data:
