@@ -12,7 +12,7 @@ You may need to extract the dataset from **scene_chars_dataset.zip** and **backg
 
 1. Learn the filters and save them into first_layer_centroids.xml:
 ```
-./extract_filters data/characters/icdar/img_ICDAR_train/* data/characters/chars74k/img/* data/characters/synthetic/img/*
+./extract_filters data/characters/icdar/img_ICDAR_train_labels.txt data/characters/chars74k/img_labels.txt data/characters/synthetic/img_labels.txt
 ```
 
 2. Extract Features:
