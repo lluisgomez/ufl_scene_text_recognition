@@ -25,7 +25,7 @@ void normalizeAndZCA(Mat& patches, Mat& M, Mat&P)
   if ((M.dims == 0) || (P.dims == 0))
   {
     Mat CC;
-    calcCovarMatrix(patches,CC,M,CV_COVAR_NORMAL|CV_COVAR_ROWS|CV_COVAR_SCALE);
+    calcCovarMatrix(patches,CC,M,COVAR_NORMAL|COVAR_ROWS|COVAR_SCALE);
     CC = CC * patches.rows / (patches.rows-1);
    
   
@@ -63,7 +63,7 @@ void run_projection_kmeans(Mat& patches, Mat& centroids, int K, int n_iter)
   randn(centroids, Mat::zeros(1,1,CV_64FC1), Mat::ones(1,1,CV_64FC1));
   //normalize all centroids
   Mat rowSum = Mat::zeros(centroids.rows,1, CV_64FC1);
-  reduce(centroids.mul(centroids), rowSum, 1, CV_REDUCE_SUM);
+  reduce(centroids.mul(centroids), rowSum, 1, REDUCE_SUM);
   cv::sqrt(rowSum,rowSum);
   for (int r=0; r<centroids.rows; r++)
     centroids.row(r) = centroids.row(r) / rowSum.at<double>(r,0);
@@ -93,13 +93,13 @@ void run_projection_kmeans(Mat& patches, Mat& centroids, int K, int n_iter)
       patches(Rect(0,i,patches.cols,lastIndex-i)).copyTo(tmp);
       summation = summation + S*tmp;
       rowSum = Mat::zeros(S.rows,1, CV_64FC1);
-      reduce(S, rowSum, 1, CV_REDUCE_SUM);
+      reduce(S, rowSum, 1, REDUCE_SUM);
       counts = counts + rowSum;
     }
 
     //normalize all centroids
     rowSum = Mat::zeros(summation.rows,1, CV_64FC1);
-    reduce(summation.mul(summation), rowSum, 1, CV_REDUCE_SUM);
+    reduce(summation.mul(summation), rowSum, 1, REDUCE_SUM);
     cv::sqrt(rowSum,rowSum);
     for (int r=0; r<summation.rows; r++)
     {

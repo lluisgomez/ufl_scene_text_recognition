@@ -19,6 +19,8 @@ using namespace std;
 int main(int argc, char **argv)
 {
 
+  cout << "running OpenCV version: "<< CV_VERSION << endl << endl;
+
 struct model* model_;
 
   // first argument is liblinear model
@@ -63,7 +65,7 @@ struct model* model_;
       exit(-1);
     }
     cvtColor(img,img,COLOR_RGB2GRAY);
-    double t = (double)cvGetTickCount();
+    double t = (double)getTickCount();
     resize(img,img,Size(image_size,image_size));
 
     int quad_id = 1;
@@ -156,16 +158,16 @@ struct model* model_;
     }
     x[feature.cols].index = -1;
 
-    t = cvGetTickCount() - t;
-    cout << " Feature extraction done in " << t/((double)cvGetTickFrequency()*1000.) << " ms." << endl;
-    t = (double)cvGetTickCount();
+    t = getTickCount() - t;
+    cout << " Feature extraction done in " << t/((double)getTickFrequency()*1000.) << " ms." << endl;
+    t = (double)getTickCount();
 
     double predict_label = predict(model_,x);
     fprintf(stdout,"Prediction: %g\n",predict_label);
     string ascii = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyx0123456789";
     fprintf(stdout,"Character : %c\n",ascii[predict_label-1]);
-    t = cvGetTickCount() - t;
-    cout << " Classification done in " << t/((double)cvGetTickFrequency()*1000.) << " ms." << endl;
+    t = getTickCount() - t;
+    cout << " Classification done in " << t/((double)getTickFrequency()*1000.) << " ms." << endl;
 
   
   // TODO end for each detection window
