@@ -10,6 +10,10 @@ cmake_install.cmake
 ufl_predict_char
 liblinear-1.94/predict
 liblinear-1.94/train
+
+train/extract_filters
+train/extract_features
+
 train/data/all_train_data.svm
 train/data/all_train_data.svm.scaled
 train/data/background/
