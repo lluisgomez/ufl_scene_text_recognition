@@ -1,7 +1,7 @@
 #include <opencv2/opencv.hpp>
 #include <iostream>
 
-#include "utils.h"
+#include "../utils.h"
 
 using namespace cv;
 using namespace std;

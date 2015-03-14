@@ -2,7 +2,7 @@
 #include <iostream>
 #include <fstream>
 
-#include "utils.h"
+#include "../utils.h"
 
 using namespace cv;
 using namespace std;
