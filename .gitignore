@@ -13,8 +13,11 @@ liblinear-1.94/train
 
 train/extract_filters
 train/extract_features
+train/filters.jpg
+train/out
 
 train/data/all_train_data.svm
+train/data/all_train_data.svm.range
 train/data/all_train_data.svm.scaled
 train/data/background/
 train/data/characters/
