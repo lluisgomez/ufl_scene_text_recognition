@@ -8,7 +8,7 @@ make
 
 ## Use:
 
-You may need to extract the dataset from **scene_text_dataset.zip** in the **data/** folder.
+You may need to extract the dataset from **scene_chars_dataset.zip** and **background_dataset.zip** in the **data/** folder.
 
 1. Learn the filters and save them into first_layer_centroids.xml:
 ```
