@@ -1,5 +1,6 @@
 #include <opencv2/opencv.hpp>
 #include <iostream>
+#include <fstream>
 
 #include "../utils.h"
 
@@ -17,15 +18,38 @@ int main (int argc, char* argv[])
   if (argc < 2)
   {
      cout << argv[0] << ": Train first layer filters with kmeans." << endl;
-     cout << "   Usage " << argv[0] << " <train images>" << endl;
+     cout << "   Usage " << argv[0] << " <dataset file(s) with train images and labels>" << endl;
+     cout << "   e.g.  " << argv[0] << " data/characters/icdar/img_ICDAR_train_labels.txt data/characters/chars74k/img_labels.txt data/characters/synthetic/img_labels.txt" << endl;
      exit(0);
   }
+
+  vector<int> labels;
+  vector<string> filenames;
+  for (int f=1; f<argc; f++)
+  {
+
+    ifstream infile(argv[f]);
+    string path = string(argv[f]);
+    path.erase(path.end()-11,path.end());
+    path.append("/");
+
+    int label;
+    string filename;
+    while (infile >> filename >> label)
+    {
+      labels.push_back(label);
+      filenames.push_back(path+filename);
+    }
+  }
+
+  int num_images = labels.size();
+
+  cout << "We have " << num_images << " images in dataset. Starting patch extraction and pre-processing ... " << endl;
 
   int image_width  = 32;
   int image_height = 32;
   int patch_width  = 8;
   int patch_height = 8;
-  int num_images = argc-1;
   int num_patches_x_image = 8;
   int num_patches = num_images * num_patches_x_image;
   int n_iter = 500; //maximum number of kmeans iterations to run
@@ -33,14 +57,14 @@ int main (int argc, char* argv[])
   int K = 150; //number of filters (for visualization must be multiple of 16)
 
   //load training examples and extract patches
-  cout << "We have " << num_images << " images in dataset. Starting patch extraction and pre-processing ... " << endl;
 
   Mat patches = Mat::zeros(num_patches, patch_width*patch_height, CV_64FC1);
   int patch_counter = 0;
 
-  for (int f=1; f<argc; f++)
+
+  for (int f=0; f<num_images; f++)
   {
-    Mat img = imread(argv[f]);
+    Mat img = imread(filenames[f]);
     if(img.channels() != 3)
       continue;
     cvtColor(img,img,COLOR_RGB2GRAY);
