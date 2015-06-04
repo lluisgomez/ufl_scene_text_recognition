@@ -145,7 +145,8 @@ struct model* model_;
     while (getline(range_infile, line))
     {
       istringstream iss(line);
-      int idx, min_val, max_val;
+      int idx;
+      double min_val, max_val;
       if (!(iss >> idx >> min_val >> max_val)) 
       {
          cout << "ERROR: reading svm-scale ranges file " << argv[2] << endl; 
