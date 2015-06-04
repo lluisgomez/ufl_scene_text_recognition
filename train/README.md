@@ -48,4 +48,23 @@ cd confusion_matrix/
 python confusion_matrix.py 
 ```
 
+Similarly, for the binary classification task:
+```
+./extract_features first_layer_centroids.xml data/background/train_labels.txt > data/binary_train_data.svm
+
+./extract_features first_layer_centroids.xml data/background/test_labels.txt > data/binary_test_data.svm
+
+
+cat data/all_train_data.svm | sed -e 's/^[0-9]* 1:/1 1:/' >> data/binary_train_data.svm 
+
+cat data/test_data.svm | sed -e 's/^[0-9]* 1:/1 1:/' >> data/binary_test_data.svm 
+
+
+svm-scale -s data/binary_train_data.svm.range data/binary_train_data.svm > data/binary_train_data.svm.scaled
+
+svm-scale -r data/binary_train_data.svm.range data/binary_test_data.svm > data/binary_test_data.svm.scaled
+
+../liblinear-1.94/train -s 7 -c 4 -e 0.001 data/binary_train_data.svm.scaled binary_train_data.liblinear.model_s7
+```
+
 IMPORTANT: if training data has changed (e.g. using a different filter bank, or changing the number of training examples) you must change the feature scale factors on ../ufl_predict_char.cpp in order to your model make correct predictions with new samples.
