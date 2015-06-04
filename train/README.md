@@ -66,5 +66,3 @@ svm-scale -r data/binary_train_data.svm.range data/binary_test_data.svm > data/b
 
 ../liblinear-1.94/train -s 7 -c 4 -e 0.001 data/binary_train_data.svm.scaled binary_train_data.liblinear.model_s7
 ```
-
-IMPORTANT: if training data has changed (e.g. using a different filter bank, or changing the number of training examples) you must change the feature scale factors on ../ufl_predict_char.cpp in order to your model make correct predictions with new samples.

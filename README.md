@@ -18,5 +18,5 @@ C++ (OpenCV) implementation of the Unsupervised Feature Learning algorithm of Ad
 
 ## Usage
 ```
- ./ufl_predict_char train/all_train_data.liblinear.model_s2 train/first_layer_centroids.xml train/data/sample/img_1.pgm
+ ./ufl_predict_char train/all_train_data.liblinear.model_s2 train/data/all_train_data.svm.range train/first_layer_centroids.xml train/data/sample/img_1.pgm
 ```
