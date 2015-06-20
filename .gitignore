@@ -8,6 +8,7 @@ Makefile
 cmake_install.cmake
 
 ufl_predict_char
+ufl_predict_word
 liblinear-1.94/predict
 liblinear-1.94/train
 
