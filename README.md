@@ -20,3 +20,7 @@ C++ (OpenCV) implementation of the Unsupervised Feature Learning algorithm of Ad
 ```
  ./ufl_predict_char train/all_train_data.liblinear.model_s2 train/data/all_train_data.svm.range train/first_layer_centroids.xml train/data/sample/img_1.pgm
 ```
+
+```
+./ufl_predict_word train/all_train_data.liblinear.model_s7 train/data/all_train_data.svm.range train/first_layer_centroids.xml train/data/sample/china.jpg
+```
