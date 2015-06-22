@@ -9,6 +9,7 @@ cmake_install.cmake
 
 ufl_predict_char
 ufl_predict_word
+beam_search
 liblinear-1.94/predict
 liblinear-1.94/train
 
