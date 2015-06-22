@@ -29,7 +29,6 @@ bool beam_sort_function ( pair< float,vector<int> > i, pair< float,vector<int> >
 
 
 // TODO this globals must be members of the class
-Mat image; // an image (32px. height) corresponds to a word
 int myints[] = {0,16,17,23,32,36,43,56,64,67,69,78,82,92,96,102,109,112,128};
 vector<int> oversegmentation (myints, myints + sizeof(myints) / sizeof(int)); // a list of pixels, i.e. possible seg. points.
 vector<bool> visited_nodes(pow(2,oversegmentation.size()),false); // hash table for visited nodes
