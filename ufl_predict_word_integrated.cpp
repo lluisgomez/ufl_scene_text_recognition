@@ -9,7 +9,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
-//#include "linear.h"
+
+using namespace cv;
+using namespace std;
 
 
 /* libLINEAR stuff */
@@ -21,241 +23,108 @@ struct feature_node
 	double value;
 };
 
-struct parameter
-{
-	int solver_type;
 
-	/* these are for training only */
-	double eps;	        /* stopping criteria */
-	double C;
-	int nr_weight;
-	int *weight_label;
-	double* weight;
-	double p;
-};
+//TODO this global vars are members of the class OCRBeamSearchCNN
+Mat transition_p;
+string vocabulary = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyx0123456789";
+int nr_class;		/* number of classes */
+int nr_feature;
+int label[62];/* label of each class */ //No needed if they are sorted from 1 to 62
+int beam_size = 50;
 
-struct model
-{
-	struct parameter param;
-	int nr_class;		/* number of classes */
-	int nr_feature;
-	double *w;
-	int *label;		/* label of each class */
-	double bias;
-};
 
-double predict_values(const struct model *model_, const struct feature_node *x, double *dec_values)
+//TODO this global vars are members of the class SlidingCNN
+Mat weights;
+Mat kernels, M, P;
+int step_size   = 4;  // sliding window step
+int window_size = 32; // window size
+int quad_size   = 12;
+int patch_size  = 8;
+int num_quads   = 25; // extract 25 quads (12x12) from each image
+int num_tiles   = 25; // extract 25 patches (8x8) from each quad 
+
+double alpha    = 0.5; // used for feature representation: 
+               // scalar non-linear function z = max(0, |D*a| - alpha)
+
+//TODO this is a member function of class SlidingCNN
+double predict_probability(const struct feature_node *x, double* prob_estimates)
 {
+	for(int i=0;i<nr_class;i++)
+		prob_estimates[i] = 0;
+
 	int idx;
-	int n;
-	if(model_->bias>=0)
-		n=model_->nr_feature+1;
-	else
-		n=model_->nr_feature;
-	double *w=model_->w;
-	int nr_class=model_->nr_class;
-	int i;
-	int nr_w = nr_class;
-
 	const feature_node *lx=x;
-	for(i=0;i<nr_w;i++)
-		dec_values[i] = 0;
 	for(; (idx=lx->index)!=-1; lx++)
 	{
 		// the dimension of testing data may exceed that of training
-		if(idx<=n)
-			for(i=0;i<nr_w;i++)
-				dec_values[i] += w[(idx-1)*nr_w+i]*lx->value;
-	}
-
-		int dec_max_idx = 0;
-		for(i=1;i<nr_class;i++)
-		{
-			if(dec_values[i] > dec_values[dec_max_idx])
-				dec_max_idx = i;
-		}
-		return model_->label[dec_max_idx];
-}
-
-double predict_probability(const struct model *model_, const struct feature_node *x, double* prob_estimates)
-{
-		int i;
-		int nr_class=model_->nr_class;
-		int nr_w;
-		if(nr_class==2)
-			nr_w = 1;
-		else
-			nr_w = nr_class;
-
-		double label=predict_values(model_, x, prob_estimates);
-		for(i=0;i<nr_w;i++)
-			prob_estimates[i]=1/(1+exp(-prob_estimates[i]));
-
-		if(nr_class==2) // for binary classification
-			prob_estimates[1]=1.-prob_estimates[0];
-		else
-		{
-			double sum=0;
-			for(i=0; i<nr_class; i++)
-				sum+=prob_estimates[i];
-
-			for(i=0; i<nr_class; i++)
-				prob_estimates[i]=prob_estimates[i]/sum;
-		}
-
-		return label;
-}
-
-struct model *load_model(const char *model_file_name)
-{
-	FILE *fp = fopen(model_file_name,"r");
-	if(fp==NULL) return NULL;
-
-	int i;
-	int nr_feature;
-	int n;
-	int nr_class;
-	double bias;
-	model *model_ = Malloc(model,1);
-	parameter& param = model_->param;
-
-	model_->label = NULL;
-
-	char *old_locale = strdup(setlocale(LC_ALL, NULL));
-	setlocale(LC_ALL, "C");
-
-	char cmd[81];
-	while(1)
-	{
-		fscanf(fp,"%80s",cmd);
-		if(strcmp(cmd,"solver_type")==0)
-		{
-			fscanf(fp,"%80s",cmd);
-		}
-		else if(strcmp(cmd,"nr_class")==0)
-		{
-			fscanf(fp,"%d",&nr_class);
-			model_->nr_class=nr_class;
-		}
-		else if(strcmp(cmd,"nr_feature")==0)
-		{
-			fscanf(fp,"%d",&nr_feature);
-			model_->nr_feature=nr_feature;
-		}
-		else if(strcmp(cmd,"bias")==0)
-		{
-			fscanf(fp,"%lf",&bias);
-			model_->bias=bias;
-		}
-		else if(strcmp(cmd,"w")==0)
-		{
-			break;
-		}
-		else if(strcmp(cmd,"label")==0)
-		{
-			int nr_class = model_->nr_class;
-			model_->label = Malloc(int,nr_class);
+		if(idx<=nr_feature)
 			for(int i=0;i<nr_class;i++)
-				fscanf(fp,"%d",&model_->label[i]);
-		}
-		else
-		{
-			fprintf(stderr,"unknown text in model file: [%s]\n",cmd);
-			setlocale(LC_ALL, old_locale);
-			free(model_->label);
-			free(model_);
-			free(old_locale);
-			return NULL;
-		}
+				prob_estimates[i] += weights.at<float>(idx-1,i)*lx->value;
 	}
 
-	nr_feature=model_->nr_feature;
-	if(model_->bias>=0)
-		n=nr_feature+1;
-	else
-		n=nr_feature;
-	int w_size = n;
-	int nr_w = nr_class;
-
-	model_->w=Malloc(double, w_size*nr_w);
-	for(i=0; i<w_size; i++)
+	int dec_max_idx = 0;
+	for(int i=1;i<nr_class;i++)
 	{
-		int j;
-		for(j=0; j<nr_w; j++)
-			fscanf(fp, "%lf ", &model_->w[i*nr_w+j]);
-		fscanf(fp, "\n");
+		if(prob_estimates[i] > prob_estimates[dec_max_idx])
+			dec_max_idx = i;
 	}
 
-	setlocale(LC_ALL, old_locale);
-	free(old_locale);
+	for(int i=0;i<nr_class;i++)
+		prob_estimates[i]=1/(1+exp(-prob_estimates[i]));
 
-	if (ferror(fp) != 0 || fclose(fp) != 0) return NULL;
+	double sum=0;
+	for(int i=0; i<nr_class; i++)
+		sum+=prob_estimates[i];
 
-	return model_;
-}
+	for(int i=0; i<nr_class; i++)
+		prob_estimates[i]=prob_estimates[i]/sum;
 
-void free_model_content(struct model *model_ptr)
-{
-	if(model_ptr->w != NULL)
-		free(model_ptr->w);
-	if(model_ptr->label != NULL)
-		free(model_ptr->label);
-}
-
-void free_and_destroy_model(struct model **model_ptr_ptr)
-{
-	struct model *model_ptr = *model_ptr_ptr;
-	if(model_ptr != NULL)
-	{
-		free_model_content(model_ptr);
-		free(model_ptr);
-	}
+	return label[dec_max_idx];
 }
 
 
-using namespace cv;
-using namespace std;
 
+// TODO this are member function of class OCRBeamSearchCNN
 vector< vector<int> > generate_childs( vector<int> &segmentation, vector<int> &oversegmentation, vector<bool> &visited_nodes );
 void update_beam ( int beam_size, vector< pair< double,vector<int> > > &beam, 
          vector< vector<int> > &childs, vector< vector<double> > &recognition_probabilities );
 double score_segmentation( vector<int> &segmentation, string &vocabulary, vector< vector<double> > &observations, Mat transition_p );
-
 bool beam_sort_function ( pair< double,vector<int> > i, pair< double,vector<int> > j )
 { 
   return (i.first > j.first);
 }
 
-//TODO this global vars as members of class
-Mat transition_p;
-string vocabulary = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyx0123456789";
 
-int main(int argc, char **argv)
-{
-  // TODO do this authomatically from a lexicon!
-  FileStorage fsp("/home/lluis/Escriptori/GSoC2014/opencv_contrib/modules/text/samples/OCRHMM_transitions_table.xml", FileStorage::READ);
-  fsp["transition_probabilities"] >> transition_p;
-  fsp.release();
 
   // 1st   argument is liblinear model for text/no-text classifier
   // 2nd   argument is libsvm-scale range file for text/no-text classifier
   // 3rd   argument is 1st layer filter bank (xml file)
   // 4th   argument is an image
+int main(int argc, char **argv)
+{
 
-  cout << "running OpenCV version: "<< CV_VERSION << endl << endl;
+  // TODO this can be generated automatically from a lexicon!
+  FileStorage fsp("/home/lluis/Escriptori/GSoC2014/opencv_contrib/modules/text/samples/OCRHMM_transitions_table.xml", FileStorage::READ);
+  fsp["transition_probabilities"] >> transition_p;
+  fsp.release();
 
-  struct model* model_;
+  //TODO fix labels order ... there is a single problem with label 52 (weights mat has to be updated accordingly)
+  int labels[62] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 53, 54, 55, 56, 57, 58, 59, 60, 61, 62, 52};
+  for (int i=0; i<62; i++) label[i] = labels[i];
 
-  if((model_=load_model(argv[1]))==0)
-  {
-    fprintf(stderr,"can't open model file %s\n",argv[1]);
-    exit(1);
-  }
+	FileStorage fs2(argv[1], FileStorage::READ);
+	fs2["weights"] >> weights;
+	nr_feature = weights.rows;
+	nr_class   = weights.cols;
 
-  // Load filters bank and withenning params
-  Mat filters, M, P;
+
+  // TODO check mat is not empty
+  // TODO check weights.cols == kernels.rows
+  // TODO load kernels and infer win_size from them
+
+  // Load kernels bank and withenning params
   FileStorage fs(argv[3], FileStorage::READ);
-  fs["D"] >> filters;
+  fs["D"] >> kernels;
   fs["M"] >> M;
   fs["P"] >> P;
   fs.release();
@@ -263,8 +132,8 @@ int main(int argc, char **argv)
   // data must be normalized within the range obtained during training
   double lower = -1.0;
   double upper =  1.0;
-  Mat feature_min = Mat::zeros(1,filters.rows*9,CV_64FC1);
-  Mat feature_max = Mat::ones(1,filters.rows*9,CV_64FC1);
+  Mat feature_min = Mat::zeros(1,kernels.rows*9,CV_64FC1);
+  Mat feature_max = Mat::ones(1,kernels.rows*9,CV_64FC1);
   std::ifstream range_infile(argv[2]);
   std::string line;
   //discard first two lines
@@ -286,15 +155,6 @@ int main(int argc, char **argv)
   }
   range_infile.close();
 
-  int step_size   = 4;  // sliding window step
-  int window_size  = 32; // window size
-  int quad_size   = 12;
-  int patch_size  = 8;
-  int num_quads   = 25; // extract 25 quads (12x12) from each image
-  int num_tiles   = 25; // extract 25 patches (8x8) from each quad 
-
-  double alpha    = 0.5; // used for feature representation: 
-               // scalar non-linear function z = max(0, |D*a| - alpha)
 
 
   Mat quad;
@@ -375,16 +235,16 @@ for (int w_y=0; w_y<=quad_size-patch_size; w_y++)
 
     //do dot product of each normalized and whitened patch 
     //each pool is averaged and this yields a representation of 9xD 
-    Mat feature = Mat::zeros(9,filters.rows,CV_64FC1);
+    Mat feature = Mat::zeros(9,kernels.rows,CV_64FC1);
     for (int i=0; i<9; i++)
     {
       Mat pool = Mat(data_pool[i]);
-      pool = pool.reshape(0,data_pool[i].size()/filters.cols);
+      pool = pool.reshape(0,data_pool[i].size()/kernels.cols);
       for (int p=0; p<pool.rows; p++)
       {
-        for (int f=0; f<filters.rows; f++)
+        for (int f=0; f<kernels.rows; f++)
         {
-feature.row(i).at<double>(0,f) = feature.row(i).at<double>(0,f) + max(0.0,std::abs(pool.row(p).dot(filters.row(f)))-alpha);
+feature.row(i).at<double>(0,f) = feature.row(i).at<double>(0,f) + max(0.0,std::abs(pool.row(p).dot(kernels.row(f)))-alpha);
         }
       }
     }
@@ -410,9 +270,9 @@ feature.row(i).at<double>(0,f) = feature.row(i).at<double>(0,f) + max(0.0,std::a
     t = (double)getTickCount();
 
     //TODO use a pointer to double probabilities[model_->nr_class]; so then it can be converted into a vector<double> and use it as emission table for this position
-    double probabilities[model_->nr_class];
+    double probabilities[nr_class];
     double *p = &probabilities[0];
-    double predict_label = predict_probability(model_,x,p);
+    double predict_label = predict_probability(x,p);
     cout << " Prediction: " << vocabulary[predict_label-1] << " with probability " << p[0] << endl; 
   
     free(x);
@@ -428,7 +288,6 @@ feature.row(i).at<double>(0,f) = feature.row(i).at<double>(0,f) + max(0.0,std::a
   }
 
   cout << "Total recognition time (s.) " << total_time << endl;
-  free_and_destroy_model(&model_);
 
 
   /*Now we go here with the beam search algorithm to optimize the recognition score*/
@@ -459,7 +318,6 @@ feature.row(i).at<double>(0,f) = feature.row(i).at<double>(0,f) + max(0.0,std::a
     }
   }
 
-  int beam_size = 50;
 
   //TODO this is not possible when we have a large number of possible segmentations.
   // options are using std::set<unsigned long long int> to store only the keys of visited nodes
