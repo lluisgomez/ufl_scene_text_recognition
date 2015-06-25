@@ -9,7 +9,208 @@
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
-#include "linear.h"
+//#include "linear.h"
+
+
+/* libLINEAR stuff */
+#define Malloc(type,n) (type *)malloc((n)*sizeof(type))
+
+struct feature_node
+{
+	int index;
+	double value;
+};
+
+struct parameter
+{
+	int solver_type;
+
+	/* these are for training only */
+	double eps;	        /* stopping criteria */
+	double C;
+	int nr_weight;
+	int *weight_label;
+	double* weight;
+	double p;
+};
+
+struct model
+{
+	struct parameter param;
+	int nr_class;		/* number of classes */
+	int nr_feature;
+	double *w;
+	int *label;		/* label of each class */
+	double bias;
+};
+
+double predict_values(const struct model *model_, const struct feature_node *x, double *dec_values)
+{
+	int idx;
+	int n;
+	if(model_->bias>=0)
+		n=model_->nr_feature+1;
+	else
+		n=model_->nr_feature;
+	double *w=model_->w;
+	int nr_class=model_->nr_class;
+	int i;
+	int nr_w = nr_class;
+
+	const feature_node *lx=x;
+	for(i=0;i<nr_w;i++)
+		dec_values[i] = 0;
+	for(; (idx=lx->index)!=-1; lx++)
+	{
+		// the dimension of testing data may exceed that of training
+		if(idx<=n)
+			for(i=0;i<nr_w;i++)
+				dec_values[i] += w[(idx-1)*nr_w+i]*lx->value;
+	}
+
+		int dec_max_idx = 0;
+		for(i=1;i<nr_class;i++)
+		{
+			if(dec_values[i] > dec_values[dec_max_idx])
+				dec_max_idx = i;
+		}
+		return model_->label[dec_max_idx];
+}
+
+double predict_probability(const struct model *model_, const struct feature_node *x, double* prob_estimates)
+{
+		int i;
+		int nr_class=model_->nr_class;
+		int nr_w;
+		if(nr_class==2)
+			nr_w = 1;
+		else
+			nr_w = nr_class;
+
+		double label=predict_values(model_, x, prob_estimates);
+		for(i=0;i<nr_w;i++)
+			prob_estimates[i]=1/(1+exp(-prob_estimates[i]));
+
+		if(nr_class==2) // for binary classification
+			prob_estimates[1]=1.-prob_estimates[0];
+		else
+		{
+			double sum=0;
+			for(i=0; i<nr_class; i++)
+				sum+=prob_estimates[i];
+
+			for(i=0; i<nr_class; i++)
+				prob_estimates[i]=prob_estimates[i]/sum;
+		}
+
+		return label;
+}
+
+struct model *load_model(const char *model_file_name)
+{
+	FILE *fp = fopen(model_file_name,"r");
+	if(fp==NULL) return NULL;
+
+	int i;
+	int nr_feature;
+	int n;
+	int nr_class;
+	double bias;
+	model *model_ = Malloc(model,1);
+	parameter& param = model_->param;
+
+	model_->label = NULL;
+
+	char *old_locale = strdup(setlocale(LC_ALL, NULL));
+	setlocale(LC_ALL, "C");
+
+	char cmd[81];
+	while(1)
+	{
+		fscanf(fp,"%80s",cmd);
+		if(strcmp(cmd,"solver_type")==0)
+		{
+			fscanf(fp,"%80s",cmd);
+		}
+		else if(strcmp(cmd,"nr_class")==0)
+		{
+			fscanf(fp,"%d",&nr_class);
+			model_->nr_class=nr_class;
+		}
+		else if(strcmp(cmd,"nr_feature")==0)
+		{
+			fscanf(fp,"%d",&nr_feature);
+			model_->nr_feature=nr_feature;
+		}
+		else if(strcmp(cmd,"bias")==0)
+		{
+			fscanf(fp,"%lf",&bias);
+			model_->bias=bias;
+		}
+		else if(strcmp(cmd,"w")==0)
+		{
+			break;
+		}
+		else if(strcmp(cmd,"label")==0)
+		{
+			int nr_class = model_->nr_class;
+			model_->label = Malloc(int,nr_class);
+			for(int i=0;i<nr_class;i++)
+				fscanf(fp,"%d",&model_->label[i]);
+		}
+		else
+		{
+			fprintf(stderr,"unknown text in model file: [%s]\n",cmd);
+			setlocale(LC_ALL, old_locale);
+			free(model_->label);
+			free(model_);
+			free(old_locale);
+			return NULL;
+		}
+	}
+
+	nr_feature=model_->nr_feature;
+	if(model_->bias>=0)
+		n=nr_feature+1;
+	else
+		n=nr_feature;
+	int w_size = n;
+	int nr_w = nr_class;
+
+	model_->w=Malloc(double, w_size*nr_w);
+	for(i=0; i<w_size; i++)
+	{
+		int j;
+		for(j=0; j<nr_w; j++)
+			fscanf(fp, "%lf ", &model_->w[i*nr_w+j]);
+		fscanf(fp, "\n");
+	}
+
+	setlocale(LC_ALL, old_locale);
+	free(old_locale);
+
+	if (ferror(fp) != 0 || fclose(fp) != 0) return NULL;
+
+	return model_;
+}
+
+void free_model_content(struct model *model_ptr)
+{
+	if(model_ptr->w != NULL)
+		free(model_ptr->w);
+	if(model_ptr->label != NULL)
+		free(model_ptr->label);
+}
+
+void free_and_destroy_model(struct model **model_ptr_ptr)
+{
+	struct model *model_ptr = *model_ptr_ptr;
+	if(model_ptr != NULL)
+	{
+		free_model_content(model_ptr);
+		free(model_ptr);
+	}
+}
 
 
 using namespace cv;
